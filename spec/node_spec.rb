@@ -1,7 +1,7 @@
 require File.dirname(__FILE__) + '/spec_helper'
 
 describe Stylo::Node do
-  it_should_behave_like 'it is configured'
+  it_is_configured_like 'there is an ontology called onto'
 
   it 'should have a path' do
     parent = Onto.add('Parent')
@@ -36,6 +36,8 @@ describe Stylo::Node do
     children = build_linear_hierarchy(5)
     children.last.path.should == children.collect(& :category).join(' / ')
   end
+
+  it "should allow you to move a node"
 
   def build_linear_hierarchy(kids, first_child = Onto.root)
     child = first_child

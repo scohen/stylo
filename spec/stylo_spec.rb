@@ -45,7 +45,7 @@ describe Onto do
   class BridgedObject;
   end
 
-  it_should_behave_like 'it is configured'
+  it_is_configured_like 'there is an ontology called onto'
 
   before(:each) do
     @root = Onto.root
@@ -160,7 +160,7 @@ end
 
 #bridging
 describe Onto do
-  it_should_behave_like 'it is configured'
+  it_is_configured_like 'there is an ontology called onto'
 
 
   class Mapper
@@ -263,7 +263,7 @@ describe Onto do
 end
 
 describe Onto do
-  it_should_behave_like 'it is configured'
+  it_is_configured_like 'there is an ontology called onto'
 
   class MyNode < Stylo::Node
 
@@ -284,7 +284,7 @@ end
 
 #searching
 describe Onto do
-  it_should_behave_like 'it is configured'
+  it_is_configured_like 'there is an ontology called onto'
 
   before(:each) do
     @root = Onto.root

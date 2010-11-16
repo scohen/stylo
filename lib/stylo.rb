@@ -46,7 +46,7 @@ module Stylo
       end
 
       def configure(env, options={})
-        self.environment = parse_uri(env[Rails.env])
+        self.environment = parse_uri(env[::Rails.env])
         self.connection = Mongo::Connection.new(environment['host'], environment['port'], options)
         self.database = connection.db(environment['database'])
         self.database.authenticate(environment['username'], environment['password']) if environment['username'] && environment['password']
