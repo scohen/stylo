@@ -121,6 +121,13 @@ module Stylo
       self.ensure_root_node
     end
 
+    def self.node(id)
+      self.node_class.find(id)
+    end
+
+    def self.count
+      self.node_class.count
+    end
 
     def self.add(name, parent=self.root, attrs={})
 
@@ -183,6 +190,7 @@ module Stylo
     def self.add_node(node, parent)
       return nil unless node.new_record?
 
+      node.parent_id = parent.id
       node.parents =  parent.parents + [parent.id]
       if node.save
         if node.is_a?(self.bridged_node_class)

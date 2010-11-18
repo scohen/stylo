@@ -10,15 +10,16 @@ class Stylo::Node
   key :parent_id, BSON::ObjectId
   key :child_count, Integer, :default => 0
   key :path_names, Array
-  
+
   timestamps!
 
   before_create :build_path_names
   before_destroy :remove_from_hierarchy
   before_save :build_search_terms
+  before_update :delete_path_names_if_category_changed
 
   def parent_categories
-    @parent_categories ||=  self.stylo_class.node_class.where('_id' => {'$in' => parents}).all
+    @parent_categories ||= self.stylo_class.node_class.where('_id' => {'$in' => parents}).all
   end
 
   def parent
@@ -46,16 +47,26 @@ class Stylo::Node
   end
 
   def build_search_terms
-    self.search_terms = self.description.downcase.split(' ').uniq if self.description
+    if description_changed?
+      self.search_terms = self.description.downcase.split(' ').uniq if self.description
+    end
   end
 
   def container?
     true
   end
 
-  def path
-   @path ||= self.path_names.join(' / ')
+  alias_method :old_path_names, :path_names
+
+  def path_names
+    build_path_names if old_path_names.empty?
+    old_path_names
   end
+
+  def path
+    @path ||= self.path_names.join(' / ')
+  end
+
 
   def build_path_names
     if self.parents
@@ -64,6 +75,13 @@ class Stylo::Node
       else
         self.path_names = [self.category].compact
       end
+    end
+  end
+
+  def delete_path_names_if_category_changed
+    if category_changed?
+      path_names[-1] = category
+      self.collection.update({'parents' => self.id}, {'$set' => {'path_names' => []}}, :multi => true)
     end
   end
 end
