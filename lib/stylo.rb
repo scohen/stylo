@@ -125,6 +125,11 @@ module Stylo
       self.node_class.find(id)
     end
 
+    def self.bridged_nodes_for(bridged_object)
+      id = bridged_object.send(:id)
+      self.bridged_node_class.where(:bridged_id => id).all
+    end
+
     def self.count
       self.node_class.count
     end
@@ -148,6 +153,7 @@ module Stylo
 
       mappings[:bridged_id] = :id unless mappings[:bridged_id]
       attrs = {:bridged_class_name => item.class.name,
+               :parent_id => parent.id,
                :node_type => 'Bridge'}
 
       [:bridged_id, :category, :description].each do |key|
@@ -157,6 +163,7 @@ module Stylo
 
       item = self.bridged_node_class.first_or_new(attrs)
       add_node(item, parent)
+      item
     end
 
     def self.search(search, * args)
@@ -187,9 +194,10 @@ module Stylo
 
     private
 
-    def self.add_node(node, parent)
+    def self.add_node(node, parent_node_or_id)
+      puts "Returning nil because of new record" unless node.new_record?
       return nil unless node.new_record?
-
+      parent = parent_node_or_id.is_a?(Stylo::Node)? parent_node_or_id : self.node(parent_node_or_id)
       node.parent_id = parent.id
       node.parents =  parent.parents + [parent.id]
       if node.save

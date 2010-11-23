@@ -48,7 +48,7 @@ describe Onto do
   it_is_configured_like 'there is an ontology called onto'
 
   before(:each) do
-    @root = Onto.root
+    @root   = Onto.root
     @bridge = BridgedObject.new
     BridgedObject.stub!(:find).with(1).and_return(@bridge)
   end
@@ -73,14 +73,14 @@ describe Onto do
 
   it "should allow you to add a category with a parent that exists" do
     parent = Onto.add('Parent')
-    child = Onto.add('Child', parent)
+    child  = Onto.add('Child', parent)
     child.parents.should == [@root.id, parent.id]
     child.parent_id.should == parent.id
   end
 
   it "should allow you to access the parent categories" do
     parent = Onto.add('Parent')
-    child = Onto.add('Child', parent)
+    child  = Onto.add('Child', parent)
     child.parent_categories.should == [@root.reload, parent.reload]
     grandchild = Onto.add('Grandkid', child)
     grandchild.parent_categories.should == [@root.reload, parent.reload, child.reload]
@@ -107,15 +107,15 @@ describe Onto do
     parent = Onto.add('Parent')
     child1 = Onto.add('Child1', parent)
     child2 = Onto.add('Child2', parent)
-    gc1 = Onto.add('Grand', child1)
-    gc2 = Onto.add('Grand', child2)
+    gc1    = Onto.add('Grand', child1)
+    gc2    = Onto.add('Grand', child2)
 
     Onto.search('Grand').collect { |x| x.id.to_s }.sort.should == [gc1, gc2].collect { |x| x.id.to_s }.sort
   end
 
   it "should move all grandchildren up to children when their parent is deleted" do
-    parent = Onto.add('Parent')
-    child =  Onto.add('Child', parent)
+    parent   = Onto.add('Parent')
+    child    = Onto.add('Child', parent)
     grandkid = Onto.add('Grandkid', child)
     child.destroy
     grandkid = grandkid.reload
@@ -128,28 +128,28 @@ describe Onto do
 
   it "should allow you to set a description for a category" do
     desc = 'this is my description'
-    cat = Onto.add('Category', @root, {:description => desc})
+    cat  = Onto.add('Category', @root, {:description => desc})
     cat.description.should == desc
     cat.reload.description.should == desc
   end
 
   it "should chop up its description into unique words" do
     desc = "unique description Unique   words"
-    cat = Onto.add('Category', @root, {:description => desc})
+    cat  = Onto.add('Category', @root, {:description => desc})
     cat.search_terms.should_not be_nil
     cat.search_terms.should == ['unique', 'description', 'words']
   end
 
   it "should allow you to search the description for a category" do
-    cat = Onto.add('Category', @root, {:description => 'uniqueness is valid'})
+    cat  = Onto.add('Category', @root, {:description => 'uniqueness is valid'})
     cat2 = Onto.add('Cat2', @root, {:description => 'Uniqueness is nice'})
 
     Onto.search('uniqueness').collect { |x| x.id.to_s }.sort.should == [cat, cat2].collect { |x| x.id.to_s }.sort
   end
 
   it "should require all words searched for be present in the description" do
-    cat = Onto.add('Category', @root, :description => 'takes 4 minutes')
-    cat2 = Onto.add('Category', @root, :description => 'takes 5 minutes')
+    cat     = Onto.add('Category', @root, :description => 'takes 4 minutes')
+    cat2    = Onto.add('Category', @root, :description => 'takes 5 minutes')
     results = Onto.search('5 minutes')
     results.size.should == 1
   end
@@ -158,7 +158,7 @@ describe Onto do
 
 end
 
-#bridging
+#bridging"
 describe Onto do
   it_is_configured_like 'there is an ontology called onto'
 
@@ -173,11 +173,11 @@ describe Onto do
 
   before(:each) do
     Onto.bridge StraightUp
-    Onto.bridge Mapper, :mappings => {:category => :name,
+    Onto.bridge Mapper, :mappings => {:category    => :name,
                                       :description => :why}
-    @root = Onto.root
+    @root        = Onto.root
 
-    @mapper = mapper_with_id_category_and_description(1,"Name","Because I love things")
+    @mapper      = mapper_with_id_category_and_description(1, "Name", "Because I love things")
 
 
     @straight_up = StraightUp.new
@@ -212,10 +212,42 @@ describe Onto do
     item.bridged_item.should == @mapper
   end
 
+  it "should be able to find all bridged nodes belonging to a bridged object" do
+    cat1    = Onto.add("New Category")
+    cat2    = Onto.add("New Category2")
+
+    cat1.should_not be_nil
+
+    b1      = Onto.add_item(@mapper)
+    b2      = Onto.add_item(@mapper, cat1)
+    b3      = Onto.add_item(@mapper, cat2)
+
+    bridged = Onto.bridged_nodes_for(@mapper)
+    bridged.should_not be_empty
+    bridged.should include(b1)
+    bridged.should include(b2)
+    bridged.should include(b3)
+  end
+
+  it "should allow you to add a bridged item to several different parts of the tree" do
+    parent = Onto.root
+    t1 = %w{first path down}.collect{|x| parent = Onto.add(x,parent)}
+    parent = Onto.root
+    t2 = %w{another path down}.collect{|x| parent = Onto.add(x,parent)}
+    parent = Onto.root
+    t3 = %w{yet another path}.collect{|x| parent = Onto.add(x,parent)}
+
+    Onto.add_item(@mapper, t1.last)
+    Onto.add_item(@mapper,t2.last)
+    Onto.add_item(@mapper, t3.last)
+
+    Onto.bridged_nodes_for(@mapper).size.should == 3
+  end
+
   it "should update the child counts recursively when a bridged child is added" do
     @root.reload.child_count.should == 0
     parent = Onto.add('Parent')
-    child = Onto.add('Child', parent)
+    child  = Onto.add('Child', parent)
 
     @root.reload.child_count.should == 0
 
@@ -231,12 +263,12 @@ describe Onto do
     parent = Onto.add('Parent')
     subcat = Onto.add("Subcat", parent)
     # root category
-    
-    child1 = Onto.add_item(mapper_with_id_category_and_description(1,"Root Child","child1"))
+
+    child1 = Onto.add_item(mapper_with_id_category_and_description(1, "Root Child", "child1"))
     # parent category
-    child2 = Onto.add_item(mapper_with_id_category_and_description(2,"Parent Child", "child2"), parent)
+    child2 = Onto.add_item(mapper_with_id_category_and_description(2, "Parent Child", "child2"), parent)
     # child category
-    child3 = Onto.add_item(mapper_with_id_category_and_description(3, "Subcat Child", "child3"),subcat)
+    child3 = Onto.add_item(mapper_with_id_category_and_description(3, "Subcat Child", "child3"), subcat)
 
     child1.should_not be_nil
     child2.should_not be_nil
@@ -247,12 +279,12 @@ describe Onto do
     parent.reload.child_count.should == 2
     subcat.reload.child_count.should == 1
 
-    
+
     Onto.root.all_leaves.size.should == 3
-    Onto.root.all_leaves.should == [child1.reload,child2.reload,child3.reload]
+    Onto.root.all_leaves.should == [child1.reload, child2.reload, child3.reload]
   end
 
-  def mapper_with_id_category_and_description(id,category,description)
+  def mapper_with_id_category_and_description(id, category, description)
     mapper = Mapper.new
     mapper.stub!(:id).and_return(id)
     mapper.stub!(:name).and_return(category)
@@ -287,7 +319,7 @@ describe Onto do
   it_is_configured_like 'there is an ontology called onto'
 
   before(:each) do
-    @root = Onto.root
+    @root   = Onto.root
     @bridge = BridgedObject.new
     BridgedObject.stub!(:find).with(1).and_return(@bridge)
   end
@@ -319,7 +351,7 @@ describe Onto do
   end
 
   it "should allow you to limit the results" do
-    parents = (1..10).collect{Onto.add("Parent - #{rand}")}
+    parents = (1..10).collect { Onto.add("Parent - #{rand}") }
     Onto.search("Parent", :limit => 3).size.should == 3
   end
 end

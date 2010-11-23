@@ -40,7 +40,6 @@ describe Stylo::Node do
   it "should update node paths if you update a node's name" do
     hier = build_linear_hierarchy(5)
     n = hier[1]
-    puts hier[3].path_names.inspect
     n.category = "New Name"
     n.save
 
