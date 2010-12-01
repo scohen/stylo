@@ -10,6 +10,10 @@ class Stylo::BridgedNode < Stylo::Node
   def container?
     false
   end
+
+  def bridged?
+    true
+  end
 end
 
 
