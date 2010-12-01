@@ -57,7 +57,7 @@ class Stylo::Node
   end
 
   def bridged?
-    false
+    !self.container?
   end
 
   alias_method :old_path_names, :path_names
