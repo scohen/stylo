@@ -107,6 +107,8 @@ module Stylo
     end
   end
 
+  class MergeUnsupported < Exception; end
+
   class Ontology
 
     include Mongo
@@ -195,7 +197,6 @@ module Stylo
     private
 
     def self.add_node(node, parent_node_or_id)
-      puts "Returning nil because of new record" unless node.new_record?
       return nil unless node.new_record?
       parent = parent_node_or_id.is_a?(Stylo::Node)? parent_node_or_id : self.node(parent_node_or_id)
       node.parent_id = parent.id

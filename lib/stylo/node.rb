@@ -1,6 +1,9 @@
 class Stylo::Node
   cattr_accessor :stylo_class
+
   include MongoMapper::Document
+  include Stylo::Callbacks
+
   key :node_type, String
   key :category, String, :index => true
   key :description, String, :default => ''
@@ -58,6 +61,27 @@ class Stylo::Node
 
   def bridged?
     !self.container?
+  end
+
+  def merge_into(another)
+    raise Stylo::MergeUnsupported unless another.class == self.class
+    raise Stylo::MergeUnsupported if self.is_a?(Stylo::BridgedNode) || another.is_a?(Stylo::BridgedNode)
+
+    self.class.perform_before_merge(self, another)
+
+    # do work
+    self.class.collection.update({'parents' => self.id},
+                                 {'$set' => {
+                                     'parents.$'  => another.id,
+                                     'path_names' => nil
+                                 }
+                                 })
+    self.class.collection.update({'parent_id' => self.id},
+                                 {'$set' => {'parent_id' => another.id}})
+
+    self.class.perform_after_merge(self, another)
+    self.destroy
+
   end
 
   alias_method :old_path_names, :path_names
