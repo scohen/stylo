@@ -203,10 +203,7 @@ module Stylo
       node.parents =  parent.parents + [parent.id]
       if node.save
         if node.is_a?(self.bridged_node_class)
-          node.parents.each do |pid|
-            node.collection.update({'_id' => pid}, {'$inc' =>{'child_count', 1}})
-          end
-          #node.collection.update({'_id' => {'$in' => node.parents}}, {'$inc' => {'child_count', 1}})
+          node.collection.update({:_id => {'$in' => node.parents}},{'$inc' => {'child_count'=> 1}},:multi => true)
         end
       end
       node

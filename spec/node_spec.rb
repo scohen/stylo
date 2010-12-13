@@ -79,7 +79,7 @@ describe Stylo::Node do
       key :bridged_id, BSON::ObjectId
     end
 
-    class ToBeBridged
+    class OtherObject
       include MongoMapper::Document
       key :name, String
       key :description, String
@@ -88,20 +88,20 @@ describe Stylo::Node do
 
     before do
       Onto.node_types :bridged => Bridged
-      Onto.bridge ToBeBridged, :mappings => {:category => :name}
+      Onto.bridge OtherObject, :mappings => {:category => :name}
 
       @grandparent = Onto.add("Grandpa")
       @parent      = Onto.add("Parent", @grandparent)
       @child       = Onto.add("Child", @parent)
       @child2      = Onto.add("Child2")
       @grandchild2 = Onto.add("Grandkid2", @child2)
+
     end
 
     context "when merging a node with children" do
       before do
         @child2.merge_into(@child)
         @grandchild2 = @grandchild2.reload
-        puts @grandchild2.inspect
       end
 
       it "should update the child path" do
@@ -120,17 +120,62 @@ describe Stylo::Node do
       it "should update the path names" do
         @grandchild2.path_names.should include('Child')
       end
+
+      context "when merging nodes with children" do
+        before do
+          @grandparent2 = Onto.add('Grandparent')
+          @parent2 = Onto.add('Parent',@grandparent2)
+          @child2  = Onto.add("Child2", @parent2)
+          3.times { Onto.add_item(OtherObject.new, @child) }
+          5.times { Onto.add_item(OtherObject.new, @child2) }
+          @parent2.reload.child_count.should == 5
+          @child.reload.child_count.should == 3
+          @child2.reload.child_count.should == 5
+          @grandparent2.reload.child_count.should == 5
+          @child2.merge_into(@child)
+        end
+
+        it "should update the child count" do
+          @child.reload.child_count.should == 8
+          @grandparent.reload.child_count.should == 8
+          @parent.reload.child_count.should == 8
+          @parent2.reload.child_count.should == 0
+          @grandparent2.reload.child_count.should == 0
+        end
+
+      end
     end
 
     context "when merging a bridged node with another" do
       before do
-        @bridged  = Onto.add_item(ToBeBridged.create(:name => 'B1'), @child)
-        @bridged2 = Onto.add_item(ToBeBridged.create(:name => 'B2'), @child2)
-
+        @bridged  = Onto.add_item(OtherObject.create(:name => 'B1'), @child)
+        @bridged2 = Onto.add_item(OtherObject.create(:name => 'B2'), @child2)
       end
 
-      it "should not be allowed" do
-        lambda { @bridged.merge_into(@bridged2) }.should raise_error(Stylo::MergeUnsupported)
+      it "should allowed" do
+        lambda { @bridged.merge_into(@bridged2) }.should_not raise_error(Stylo::MergeUnsupported)
+      end
+
+      context "after the merge is complete" do
+        before do
+          @bridged2.merge_into(@bridged)
+          @bridged2.reload
+        end
+
+        it "should update the bridged id" do
+          @bridged2.bridged_id.should == @bridged.bridged_id
+        end
+
+        it "should leave the original node" do
+          Onto.node(@bridged2.id).should_not be_nil
+        end
+      end
+
+      context "after the merge" do
+        before { @bridged.merge_into(@bridged2) }
+        it "should update the bridged_id of the original node" do
+          @bridged.bridged_id.should == @bridged2.bridged_id
+        end
       end
     end
 

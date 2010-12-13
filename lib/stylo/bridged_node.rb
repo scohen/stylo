@@ -10,6 +10,15 @@ class Stylo::BridgedNode < Stylo::Node
   def container?
     false
   end
+
+  def merge_into(another)
+    raise Stylo::MergeUnsupported unless another.class == self.class
+    self.class.perform_before_merge(self, another)
+
+    # do work
+    self.update_attributes(:bridged_id => another.bridged_id)
+    self.class.perform_after_merge(self, another)
+  end
 end
 
 

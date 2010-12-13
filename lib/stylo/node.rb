@@ -65,19 +65,21 @@ class Stylo::Node
 
   def merge_into(another)
     raise Stylo::MergeUnsupported unless another.class == self.class
-    raise Stylo::MergeUnsupported if self.is_a?(Stylo::BridgedNode) || another.is_a?(Stylo::BridgedNode)
-
     self.class.perform_before_merge(self, another)
-
+    collection = self.class.collection
     # do work
-    self.class.collection.update({'parents' => self.id},
+    another.update_attributes(:child_count => another.child_count + self.child_count)
+    collection.update({'parents' => self.id},
                                  {'$set' => {
                                      'parents.$'  => another.id,
                                      'path_names' => nil
-                                 }
-                                 })
-    self.class.collection.update({'parent_id' => self.id},
-                                 {'$set' => {'parent_id' => another.id}})
+                                 }}, :multi => true)
+    collection.update({'parent_id' => self.id},
+                                 {'$set' => {'parent_id' => another.id}}, :multi => true)
+
+    collection.update({:_id => {'$in' => another.parents}},{'$inc' => {'child_count'=> self.child_count}},:multi => true)
+    collection.update({:_id => {'$in' => self.parents}},{'$inc' => {'child_count'=>  -self.child_count}},:multi => true)
+
 
     self.class.perform_after_merge(self, another)
     self.destroy
