@@ -59,30 +59,60 @@ class Stylo::Node
     true
   end
 
+  def parent_of?(another)
+    another.parents.include?(self.id)
+  end
+
+  def child_of?(another)
+    parents.include?(another.id)
+  end
+
   def bridged?
     !self.container?
   end
 
-  def merge_into(another)
+  def merge_into(another, opts={:skip_callbacks => false})
     raise Stylo::MergeUnsupported unless another.class == self.class
     self.class.perform_before_merge(self, another)
-    collection = self.class.collection
+
     # do work
-    another.update_attributes(:child_count => another.child_count + self.child_count)
-    collection.update({'parents' => self.id},
-                                 {'$set' => {
-                                     'parents.$'  => another.id,
-                                     'path_names' => nil
-                                 }}, :multi => true)
-    collection.update({'parent_id' => self.id},
-                                 {'$set' => {'parent_id' => another.id}}, :multi => true)
+    if self.parent_of?(another)
+      # merging parent into its child
+      collection.update({:parents => self.id},{
+          '$set' => { 'parents.$' => another.id,
+                      'path_names' => nil        
+          }},
+                        :multi => true)
 
-    collection.update({:_id => {'$in' => another.parents}},{'$inc' => {'child_count'=> self.child_count}},:multi => true)
-    collection.update({:_id => {'$in' => self.parents}},{'$inc' => {'child_count'=>  -self.child_count}},:multi => true)
+      collection.update({:parent_id => self.id},
+                        {'$set' => {:parent_id => another.id}},
+                        :multi => true)
+      another.update_attributes(:parent_id => self.parent_id)
+      
+    elsif self.child_of?(another)
+      #merging a child into its parent
+      collection.update({'parents' => self.id},
+                        {'$pull' => {'parents' => self.id}})
+      collection.update({:parent_id =>  self.id},
+                        {'$set' => {:parent_id => another.id}},
+                        :multi => true)
+      another.update_attributes(:parent_id => self.parent_id)
+    else
+      another.update_attributes(:child_count => another.child_count + self.child_count)
+      collection.update({:parents => self.id},
+                                   {'$set' => {
+                                       'parents.$'  => another.id,
+                                       'path_names' => nil
+                                   }}, :multi => true)
+      collection.update({'parent_id' => self.id},
+                                   {'$set' => {'parent_id' => another.id}}, :multi => true)
 
-
-    self.class.perform_after_merge(self, another)
+      collection.update({:_id => {'$in' => another.parents}},{'$inc' => {'child_count'=> self.child_count}},:multi => true)
+      collection.update({:_id => {'$in' => self.parents}},{'$inc' => {'child_count'=>  -self.child_count}},:multi => true)
+    end
     self.destroy
+    self.class.perform_after_merge(self, another)
+
 
   end
 

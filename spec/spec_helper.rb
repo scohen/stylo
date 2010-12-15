@@ -36,4 +36,9 @@ module ThereIsAnOntologyCalledOnto
   end
 end
 
+def mark(&block)
+  puts "----- RELEVANT -----"
+  yield
+  puts "----- TNAVELER -----"
+end
 

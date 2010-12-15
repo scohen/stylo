@@ -20,6 +20,20 @@ describe Stylo::Node do
     child.path_names.should == children.collect(& :category)
   end
 
+  it "should be able to tell if it's a parent" do
+    parent = Onto.add('Parent')
+    child = Onto.add('Child',parent)
+
+    parent.should be_parent_of(child)
+  end
+
+  it "should be able to tell if it's a child" do
+    parent = Onto.add('Parent')
+    child = Onto.add('Child',parent)
+
+    child.should be_child_of(parent)
+  end
+
   it "should update the path names if its hierarchy is changed" do
     children = build_linear_hierarchy(5)
     killed   = children.delete(children[2])
@@ -124,8 +138,8 @@ describe Stylo::Node do
       context "when merging nodes with children" do
         before do
           @grandparent2 = Onto.add('Grandparent')
-          @parent2 = Onto.add('Parent',@grandparent2)
-          @child2  = Onto.add("Child2", @parent2)
+          @parent2      = Onto.add('Parent', @grandparent2)
+          @child2       = Onto.add("Child2", @parent2)
           3.times { Onto.add_item(OtherObject.new, @child) }
           5.times { Onto.add_item(OtherObject.new, @child2) }
           @parent2.reload.child_count.should == 5
@@ -145,6 +159,62 @@ describe Stylo::Node do
 
       end
     end
+
+    context "when merging a parent into its child" do
+      before do
+        @child_child         = Onto.add("Second child", @child)
+        @other_sibling       = Onto.add("Sib", @parent)
+        @yet_another_sibling = Onto.add("Another sib", @parent)
+        @parent.merge_into(@child)
+      end
+
+      it "should destroy the parent" do
+        Onto.node(@parent.id).should be_nil
+      end
+
+      it "should update the original child's path" do
+        @child.reload.parents.should_not be_include(@parent.id)
+      end
+
+
+      it "should update the parent id in the child" do
+
+        @child.reload.parent_id.should == @grandparent.id
+
+      end
+
+      it "should update any sibling's parent ids" do
+        @other_sibling.reload.parent.should == @child
+        @yet_another_sibling.reload.parent.should == @child
+      end
+
+      it "should eliminate the child from the paths" do
+        @parent.merge_into(@child)
+
+        @child_child.reload.parents.should_not be_include(@parent.id)
+      end
+    end
+
+    context "when merging a child into its parent" do
+      before do
+        @child_child  = Onto.add("Second child", @child)
+        @child_child2 = Onto.add('Sib1', @child)
+        @child.merge_into(@parent)
+      end
+
+      it "should eliminate the child id from its children" do
+        @child_child.reload.parents.should_not be_include(@child.id)
+      end
+      it "should destroy the child" do
+        Onto.node(@child.id).should be_nil
+      end
+
+      it "should update the parent_id on all siblings" do
+        @child_child.reload.parent_id.should == @parent.id
+        @child_child2.reload.parent_id.should == @parent.id
+      end
+    end
+
 
     context "when merging a bridged node with another" do
       before do
@@ -177,6 +247,7 @@ describe Stylo::Node do
           @bridged.bridged_id.should == @bridged2.bridged_id
         end
       end
+
     end
 
     it "should allow you to move a node"
