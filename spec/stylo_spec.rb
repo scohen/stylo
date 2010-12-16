@@ -26,25 +26,46 @@ describe Stylo do
   end
 
   it "should allow you to set the collection" do
-    Onto1.configure 'test' => {'uri' => 'mongodb://localhost/onto1',
-    'collection' => 'my_collection'}
-    Onto1.collection.name.should == 'my_collection'
-    Onto1.node_class.collection.name.should == Onto1.collection.name
-    Onto1.bridged_node_class.collection.name.should == Onto1.collection.name
+    Onto1.configure 'test' => {'uri'        => 'mongodb://localhost/onto1',
+                               'collection' => 'my_collection'}
+    Stylo::Node.collection.name.should == 'my_collection'
   end
 
-  it 'should allow you to configure separate node classes' do
-    Onto1.configure 'test' => {'uri' => 'mongodb://localhost/onto1'}
-    Onto1.node_types :node => Node1, :bridged => BridgedNode1
-    Onto2.configure 'test' => {'uri' => 'mongodb://localhost/onto2'}
-    Onto2.node_types :node => Node2, :bridged => BridgedNode2
 
-    Onto1.node_class.should == Node1
-    Onto1.bridged_node_class.should == BridgedNode1
+  context "when setting node classes" do
+    before do
+      Onto1.configure 'test' => {'uri' => 'mongodb://localhost/onto1', 'collection' => 'my_collection'}
+      Onto1.node_types :node => Node1, :bridged => BridgedNode1
+    end
 
-    Onto2.node_class.should == Node2
-    Onto2.bridged_node_class.should == BridgedNode2
+    it "should allow you to set the collection on classes you specify" do
+      Stylo::Node.collection.name.should == 'my_collection'
+      Onto1.node_class.collection.name.should == 'my_collection'
+      Onto1.bridged_node_class.collection.name.should == 'my_collection'
+      Onto1.bridged_node_class.should_not == Onto1.node_class
+    end
 
+    context "and there are two ontologies" do
+      before do
+        Onto2.configure 'test' => {'uri'        => 'mongodb://localhost/onto2',
+                                   'collection' => 'onto2'
+        }
+        Onto2.node_types :node => Node2, :bridged => BridgedNode2
+      end
+
+      it 'should allow you to configure separate node classes' do
+        Onto1.node_class.should == Node1
+        Onto1.bridged_node_class.should == BridgedNode1
+
+        Onto2.node_class.should == Node2
+        Onto2.bridged_node_class.should == BridgedNode2
+      end
+
+      it "should allow you to set different collection names for different ontologies" do
+        Onto1.collection.name.should == "my_collection"
+        Onto2.collection.name.should == 'onto2'
+      end
+    end
   end
 end
 
@@ -221,8 +242,8 @@ describe Onto do
   end
 
   it "should be able to find all bridged nodes belonging to a bridged object" do
-    cat1    = Onto.add("New Category")
-    cat2    = Onto.add("New Category2")
+    cat1 = Onto.add("New Category")
+    cat2 = Onto.add("New Category2")
 
     cat1.should_not be_nil
 
@@ -239,14 +260,14 @@ describe Onto do
 
   it "should allow you to add a bridged item to several different parts of the tree" do
     parent = Onto.root
-    t1 = %w{first path down}.collect{|x| parent = Onto.add(x,parent)}
+    t1     = %w{first path down}.collect { |x| parent = Onto.add(x, parent) }
     parent = Onto.root
-    t2 = %w{another path down}.collect{|x| parent = Onto.add(x,parent)}
+    t2     = %w{another path down}.collect { |x| parent = Onto.add(x, parent) }
     parent = Onto.root
-    t3 = %w{yet another path}.collect{|x| parent = Onto.add(x,parent)}
+    t3     = %w{yet another path}.collect { |x| parent = Onto.add(x, parent) }
 
     Onto.add_item(@mapper, t1.last)
-    Onto.add_item(@mapper,t2.last)
+    Onto.add_item(@mapper, t2.last)
     Onto.add_item(@mapper, t3.last)
 
     Onto.bridged_nodes_for(@mapper).size.should == 3
