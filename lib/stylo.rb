@@ -50,6 +50,7 @@ module Stylo
         self.environment = parse_uri(env[::Rails.env])
         self.connection = Mongo::Connection.new(environment['host'], environment['port'], options)
         self.database = connection.db(environment['database'])
+        self.collection = self.database.collection((env[::Rails.env]['collection'] || 'stylo.nodes'))
         self.database.authenticate(environment['username'], environment['password']) if environment['username'] && environment['password']
         self.node_types :node => Stylo::Node, :bridged => Stylo::BridgedNode
         nil
@@ -78,11 +79,12 @@ module Stylo
 
         self.node_class = Stylo::Node if node_class.nil?
         self.bridged_node_class = Stylo::BridgedNode if bridged_node_class.nil?
-
         self.node_class.set_database_name database.name
+        self.node_class.set_collection_name collection.name
         self.node_class.stylo_class = self
 
         self.bridged_node_class.set_database_name database.name
+        self.bridged_node_class.set_collection_name collection.name
         self.bridged_node_class.stylo_class = self
 
       end

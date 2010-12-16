@@ -25,6 +25,14 @@ describe Stylo do
     Onto2.database.name.should == 'onto2'
   end
 
+  it "should allow you to set the collection" do
+    Onto1.configure 'test' => {'uri' => 'mongodb://localhost/onto1',
+    'collection' => 'my_collection'}
+    Onto1.collection.name.should == 'my_collection'
+    Onto1.node_class.collection.name.should == Onto1.collection.name
+    Onto1.bridged_node_class.collection.name.should == Onto1.collection.name
+  end
+
   it 'should allow you to configure separate node classes' do
     Onto1.configure 'test' => {'uri' => 'mongodb://localhost/onto1'}
     Onto1.node_types :node => Node1, :bridged => BridgedNode1
