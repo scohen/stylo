@@ -26,11 +26,11 @@ class Stylo::Node
   end
 
   def parent
-    @parent ||= self.stylo_class.node_class.find(self.parent_id)
+    @parent ||= Stylo::Node.find(self.parent_id)
   end
 
   def children
-    self.stylo_class.node_class.where(:parent_id => id).all
+    Stylo::Node.where(:parent_id => id).all
   end
 
   def all_leaves
