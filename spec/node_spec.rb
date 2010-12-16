@@ -178,7 +178,6 @@ describe Stylo::Node do
 
 
       it "should update the parent id in the child" do
-
         @child.reload.parent_id.should == @grandparent.id
 
       end
@@ -188,10 +187,12 @@ describe Stylo::Node do
         @yet_another_sibling.reload.parent.should == @child
       end
 
-      it "should eliminate the child from the paths" do
-        @parent.merge_into(@child)
-
+      it "should eliminate the child from the parents" do
         @child_child.reload.parents.should_not be_include(@parent.id)
+      end
+
+      it "should eliminate the child's name from its children's parent names" do
+        @child_child.reload.path_names.should_not be_include(@parent.category)
       end
     end
 
@@ -207,6 +208,10 @@ describe Stylo::Node do
       end
       it "should destroy the child" do
         Onto.node(@child.id).should be_nil
+      end
+
+      it "should delete its name from its children's path names" do
+        @child_child.reload.path_names.should_not be_include(@child.category)
       end
 
       it "should update the parent_id on all siblings" do

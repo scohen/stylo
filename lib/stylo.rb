@@ -17,6 +17,7 @@ module Stylo
           attr_accessor :environment,
                         :database,
                         :connection,
+                        :collection,
                         :bridges,
                         :node_class,
                         :bridged_node_class
@@ -124,7 +125,7 @@ module Stylo
     end
 
     def self.node(id)
-      self.node_class.find(id)
+      Stylo::Node.find(id)
     end
 
     def self.bridged_nodes_for(bridged_object)
@@ -133,7 +134,7 @@ module Stylo
     end
 
     def self.count
-      self.node_class.count
+      Stylo::Node.count
     end
 
     def self.add(name, parent=self.root, attrs={})
@@ -173,7 +174,7 @@ module Stylo
       opts = args.extract_options!
       params = [{:category => /\b#{search}/i}, {:search_terms => {'$all' => search.downcase.split(' ')}}]
 
-      query = self.node_class.where('$or' => params)
+      query = Stylo::Node.where('$or' => params)
       if limit = opts.delete(:limit)
         query = query.limit(limit)
       end

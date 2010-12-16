@@ -46,7 +46,7 @@ class Stylo::Node
   end
 
   def remove_from_hierarchy
-    Stylo::Ontology.remove_from_hierarchy(self)
+    self.class.stylo_class.send(:remove_from_hierarchy,self)
   end
 
   def build_search_terms
@@ -78,10 +78,10 @@ class Stylo::Node
     # do work
     if self.parent_of?(another)
       # merging parent into its child
-      collection.update({:parents => self.id},{
-          '$set' => { 'parents.$' => another.id,
-                      'path_names' => nil        
-          }},
+      collection.update({:parents => self.id},
+                        {'$pull' => { :path_names => self.category},
+                         '$set' => { 'parents.$' => another.id}
+      },
                         :multi => true)
 
       collection.update({:parent_id => self.id},
@@ -91,8 +91,10 @@ class Stylo::Node
       
     elsif self.child_of?(another)
       #merging a child into its parent
-      collection.update({'parents' => self.id},
-                        {'$pull' => {'parents' => self.id}})
+      collection.update({:parents => self.id},
+                        {'$pull' => {:parents => self.id,
+                         :path_names => self.category
+                        }})
       collection.update({:parent_id =>  self.id},
                         {'$set' => {:parent_id => another.id}},
                         :multi => true)
@@ -104,11 +106,16 @@ class Stylo::Node
                                        'parents.$'  => another.id,
                                        'path_names' => nil
                                    }}, :multi => true)
-      collection.update({'parent_id' => self.id},
-                                   {'$set' => {'parent_id' => another.id}}, :multi => true)
+      collection.update({:parent_id => self.id},
+                                   {'$set' => {:parent_id => another.id}},
+                                   :multi => true)
 
-      collection.update({:_id => {'$in' => another.parents}},{'$inc' => {'child_count'=> self.child_count}},:multi => true)
-      collection.update({:_id => {'$in' => self.parents}},{'$inc' => {'child_count'=>  -self.child_count}},:multi => true)
+      collection.update({:_id => {'$in' => another.parents}},
+                        {'$inc' => {:child_count=> self.child_count}},
+                        :multi => true)
+      collection.update({:_id => {'$in' => self.parents}},
+                        {'$inc' => {:child_count=>  -self.child_count}},
+                        :multi => true)
     end
     self.destroy
     self.class.perform_after_merge(self, another)
